@@ -91,8 +91,8 @@ if st.button("📥 설문 결과 제출"):
     csv = df.to_csv(index=False).encode("utf-8-sig")
     st.download_button("📄 CSV 다운로드", data=csv, file_name=f"{name}_설문결과.csv", mime="text/csv")
 
-    # Google Sheets 저장
-     try:
+    # ✅ Google Sheets 저장 - 들여쓰기 주의!
+    try:
         sheet = gc.open("emotion_survey_data").sheet1
         if not sheet.get_all_values():
             sheet.append_row(list(result.keys()))
