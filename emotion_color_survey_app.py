@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from streamlit_sortables import sort_items
 import gspread
 import json
 from oauth2client.service_account import ServiceAccountCredentials
@@ -35,9 +34,9 @@ type_map = {"++": "격렬형", "--": "둔감형", "-+": "압도형", "+-": "안�
 emotion_type = type_map[emotion_code]
 st.success(f"👉 당신의 정서 경험 유형은 **{emotion_type}**입니다.")
 
-# 2. 색상 순위
+# 2. 색상 순위 선택 (드래그 대신 selectbox)
 st.header("2. 색채 감정 순위 평가")
-st.markdown("가장 긍정적인 느낌을 주는 색이 위로 가도록 순서대로 드래그하세요.")
+st.markdown("가장 긍정적인 느낌을 주는 색부터 순서대로 선택해주세요.")
 
 color_hex = {
     "빨강": "#FF0000", "주황": "#FFA500", "노랑": "#FFFF00",
@@ -46,12 +45,18 @@ color_hex = {
     "하양": "#FFFFFF", "회색": "#808080", "검정": "#000000"
 }
 
-items = list(color_hex.keys())
-sorted_colors = sort_items(items, direction="vertical")
-color_rank = {color: idx + 1 for idx, color in enumerate(sorted_colors)}
+ranked_colors = []
+remaining_colors = list(color_hex.keys())
+for i in range(1, 13):
+    choice = st.selectbox(f"{i}위 색상 선택", options=remaining_colors, key=f"rank_{i}")
+    if choice:
+        ranked_colors.append(choice)
+        remaining_colors.remove(choice)
+
+color_rank = {color: idx + 1 for idx, color in enumerate(ranked_colors)}
 
 st.markdown("### 선택한 순서:")
-for color in sorted_colors:
+for color in ranked_colors:
     st.markdown(
         f"<div style='display:flex;align-items:center;margin-bottom:4px;'>"
         f"<div style='width:25px;height:25px;background-color:{color_hex[color]};border:1px solid #000;margin-right:10px;'></div>"
@@ -84,14 +89,13 @@ if st.button("📥 설문 결과 제출"):
         "전화번호": phone
     }
     for color in color_hex:
-        result[f"{color} 순위"] = color_rank[color]
+        result[f"{color} 순위"] = color_rank.get(color, "")
 
-    # CSV 다운로드
     df = pd.DataFrame([result])
     csv = df.to_csv(index=False).encode("utf-8-sig")
     st.download_button("📄 CSV 다운로드", data=csv, file_name=f"{name}_설문결과.csv", mime="text/csv")
 
-    # ✅ Google Sheets 저장 - 들여쓰기 주의!
+    # Google Sheets 저장
     try:
         sheet = gc.open("emotion_survey_data").sheet1
         if not sheet.get_all_values():
@@ -102,27 +106,29 @@ if st.button("📥 설문 결과 제출"):
         st.error(f"❌ 저장 실패: {e}")
 
     # 배쓰밤 추천
-    top_color = sorted_colors[0]
-    bathbomb_recommendations = {
-    "빨강": ["러쉬 - 체리블라썸", "레드 로즈 밤", "러쉬 - 딥 레드", "페라리 레드"],
-    "주황": ["러쉬 - 브라이트사이드", "오렌지 선셋", "러쉬 - 해피 히피", "탠저린 드림"],
-    "노랑": ["러쉬 - 요거트 누들", "허니레몬 선샤인", "레몬소르베", "옐로우 버블"],
-    "연두": ["라임 민트밤", "러쉬 - 애비컬", "프레시 허브", "에버그린"],
-    "초록": ["러쉬 - 가디스 오브 더 포레스트", "그린티 플로럴", "자연속으로", "러쉬 - 더 컴포터"],
-    "파랑": ["러쉬 - 인터갈락틱", "아쿠아밤 블루", "샤넬 - 블루 드 샤넬", "이니스프리 - 바다소금"],
-    "보라": ["러쉬 - 트와일라잇", "라벤더 퍼플", "몽환의 밤", "퍼플 드림"],
-    "분홍": ["러쉬 - 섹스밤", "핑크 베이비", "플라워 핑크", "브리티시 로즈"],
-    "갈색": ["시나몬 밤", "초코 캐러멜", "우디 머스크", "에센셜 코코아"],
-    "하양": ["코튼 클라우드", "화이트 무스크", "러쉬 - 드림타임", "밀키 웨이"],
-    "회색": ["스톤 그레이", "차콜 배쓰밤", "러쉬 - 메탈릭 블러쉬", "슬레이트 미스트"],
-    "검정": ["러쉬 - 메탈 헤드", "블랙로즈", "차콜 데톡스", "다크 미드나잇"]
-}
-    image_path = f"images/{top_color}.png"
-    st.markdown("---")
-    st.subheader("🎁 당신에게 어울리는 배쓰밤 추천")
-    try:
-        st.image(image_path, width=150, caption=f"{top_color} 배쓰밤")
-    except:
-        st.warning("이미지를 불러올 수 없습니다.")
-    for i, product in enumerate(bathbomb_recommendations.get(top_color, []), 1):
-        st.markdown(f"{i}. {product}")
+    if ranked_colors:
+        top_color = ranked_colors[0]
+        bathbomb_recommendations = {
+            "빨강": ["러쉬 - 체리블라썸", "레드 로즈 밤", "러쉬 - 딥 레드", "페라리 레드"],
+            "주황": ["러쉬 - 브라이트사이드", "오렌지 선셋", "러쉬 - 해피 히피", "탠저린 드림"],
+            "노랑": ["러쉬 - 요거트 누들", "허니레몬 선샤인", "레몬소르베", "옐로우 버블"],
+            "연두": ["라임 민트밤", "러쉬 - 애비컬", "프레시 허브", "에버그린"],
+            "초록": ["러쉬 - 가디스 오브 더 포레스트", "그린티 플로럴", "자연속으로", "러쉬 - 더 컴포터"],
+            "파랑": ["러쉬 - 인터갈락틱", "아쿠아밤 블루", "샤넬 - 블루 드 샤넬", "이니스프리 - 바다소금"],
+            "보라": ["러쉬 - 트와일라잇", "라벤더 퍼플", "몽환의 밤", "퍼플 드림"],
+            "분홍": ["러쉬 - 섹스밤", "핑크 베이비", "플라워 핑크", "브리티시 로즈"],
+            "갈색": ["시나몬 밤", "초코 캐러멜", "우디 머스크", "에센셜 코코아"],
+            "하양": ["코튼 클라우드", "화이트 무스크", "러쉬 - 드림타임", "밀키 웨이"],
+            "회색": ["스톤 그레이", "차콜 배쓰밤", "러쉬 - 메탈릭 블러쉬", "슬레이트 미스트"],
+            "검정": ["러쉬 - 메탈 헤드", "블랙로즈", "차콜 데톡스", "다크 미드나잇"]
+        }
+        image_path = f"images/{top_color}.png"
+        st.markdown("---")
+        st.subheader("🎁 당신에게 어울리는 배쓰밤 추천")
+        try:
+            st.image(image_path, width=150, caption=f"{top_color} 배쓰밤")
+        except:
+            st.warning("이미지를 불러올 수 없습니다.")
+        for i, product in enumerate(bathbomb_recommendations.get(top_color, []), 1):
+            st.markdown(f"{i}. {product}")
+
