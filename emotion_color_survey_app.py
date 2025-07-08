@@ -92,8 +92,10 @@ if st.button("📥 설문 결과 제출"):
     st.download_button("📄 CSV 다운로드", data=csv, file_name=f"{name}_설문결과.csv", mime="text/csv")
 
     # Google Sheets 저장
-    try:
+     try:
         sheet = gc.open("emotion_survey_data").sheet1
+        if not sheet.get_all_values():
+            sheet.append_row(list(result.keys()))
         sheet.append_row(list(result.values()))
         st.success("✅ Google Sheets 저장 완료!")
     except Exception as e:
