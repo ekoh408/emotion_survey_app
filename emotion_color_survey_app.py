@@ -2,14 +2,14 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from streamlit_sortables import sort_items
-import gspread
-import json
-from oauth2client.service_account import ServiceAccountCredentials
+# import gspread
+# import json
+# from oauth2client.service_account import ServiceAccountCredentials
 
-creds_dict = json.loads(st.secrets["GCP_CREDENTIALS"])
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-credentials = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-gc = gspread.authorize(credentials)
+# creds_dict = json.loads(st.secrets["GCP_CREDENTIALS"])
+# scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+# credentials = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+# gc = gspread.authorize(credentials)
 
 # 앱 설정
 st.set_page_config(page_title="정서 색채 설문", layout="centered")
